@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.http import HttpResponse
 from revproxy.views import ProxyView
 
 from proxy_monitoring import config
@@ -13,12 +14,17 @@ class FlowerView(BaseProxyView):
     upstream = config.FLOWER_UPSTREAM
 
     def dispatch(self, request, path):
-        response = super(FlowerView, self).dispatch(request, path)
+        response: HttpResponse = super(FlowerView, self).dispatch(request, path)
         content_type = response.headers.get('Content-Type')
         if content_type and 'html' in content_type:
-            response.content = response.content.decode().replace(
+            content = response.content.decode().replace(
                 '="/', '="/monitoring/flower/'
             ).encode()
+            response = HttpResponse(
+                content,
+                content_type=content_type,
+                status=response.status_code
+            )
         return response
 
 
@@ -29,7 +35,12 @@ class GrafanaView(BaseProxyView):
         response = super(GrafanaView, self).dispatch(request, path)
         content_type = response.headers.get('Content-Type')
         if content_type and 'html' in content_type:
-            response.content = response.content.decode().replace(
+            content = response.content.decode().replace(
                 '="/', '="/monitoring/grafana/'
             ).encode()
+            response = HttpResponse(
+                content,
+                content_type=content_type,
+                status=response.status_code
+            )
         return response
